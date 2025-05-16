@@ -25,7 +25,6 @@ declare global {
 }
 
 console.log('Initializing Prisma Client...')
-console.log('DATABASE_URL:', process.env.DATABASE_URL)
 
 const prisma = global.prisma || new PrismaClient({
   log: ['query', 'error', 'info', 'warn'],
