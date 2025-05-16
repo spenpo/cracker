@@ -1,14 +1,13 @@
-import type { MyContext } from "@/pages/api/graphql"
+import prisma from '@/utils/prisma'
 import argon2 from "argon2"
-import { Arg, Ctx, Mutation, Resolver } from "type-graphql"
+import { Arg, Mutation, Resolver } from "type-graphql"
 import { UserInput, RegisterResponse } from "../schemas"
 
 @Resolver(RegisterResponse)
 class RegistrationResolver {
   @Mutation(() => RegisterResponse)
   async register(
-    @Arg("user", () => UserInput) user: UserInput,
-    @Ctx() { prisma }: MyContext
+    @Arg("user", () => UserInput) user: UserInput
   ): Promise<RegisterResponse> {
     console.log('Starting registration process...')
     const hashedPassword = await argon2.hash(user.password)
