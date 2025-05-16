@@ -14,6 +14,7 @@ model feature_flag {
   is_enabled    Boolean      @default(false)
   required_role Int?
   role_lookup   role_lookup? @relation(fields: [required_role], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("wp_cracker_feature_flag")
 }
 
 model role_lookup {
@@ -22,6 +23,7 @@ model role_lookup {
   description  String         @db.VarChar(255)
   feature_flag feature_flag[]
   user         user[]
+  @@map("wp_cracker_role_lookup")
 }
 
 model sentence {
@@ -29,6 +31,7 @@ model sentence {
   sentence                          String  @db.VarChar(512)
   tracker                           Int
   tracker_sentence_trackerTotracker tracker @relation("sentence_trackerTotracker", fields: [tracker], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("wp_cracker_sentence")
 }
 
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
@@ -43,6 +46,7 @@ model tracker {
   sentence_sentence_trackerTotracker sentence[] @relation("sentence_trackerTotracker")
   user_tracker_userTouser            user       @relation("tracker_userTouser", fields: [user], references: [id], onDelete: NoAction, onUpdate: NoAction)
   word_word_trackerTotracker         word[]     @relation("word_trackerTotracker")
+  @@map("wp_cracker_tracker")
 }
 
 model user {
@@ -55,6 +59,7 @@ model user {
   role                       Int?         @default(1)
   tracker_tracker_userTouser tracker[]    @relation("tracker_userTouser")
   role_lookup                role_lookup? @relation(fields: [role], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("wp_cracker_user")
 }
 
 model word {
@@ -62,4 +67,5 @@ model word {
   word                          String  @db.VarChar(50)
   tracker                       Int
   tracker_word_trackerTotracker tracker @relation("word_trackerTotracker", fields: [tracker], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@map("wp_cracker_word")
 }
