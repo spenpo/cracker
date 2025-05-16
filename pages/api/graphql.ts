@@ -26,14 +26,18 @@ declare global {
 
 console.log('Initializing Prisma Client...')
 
-const prisma = global.prisma || new PrismaClient({
-  log: ['query', 'error', 'info', 'warn'],
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: ['query', 'error', 'info', 'warn'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL
+      }
     }
-  }
-})
+  })
+}
+
+const prisma = global.prisma || prismaClientSingleton()
 
 // Test the connection
 prisma.$connect()
