@@ -1,9 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { prisma } from '@/utils/prisma'
 import argon2 from "argon2"
 import { Arg, Mutation, Resolver } from "type-graphql"
 import { UserInput, RegisterResponse } from "../schemas"
-
-const prisma = new PrismaClient()
 
 @Resolver(RegisterResponse)
 class RegistrationResolver {
@@ -11,9 +9,11 @@ class RegistrationResolver {
   async register(
     @Arg("user", () => UserInput) user: UserInput
   ): Promise<RegisterResponse> {
+    console.log('Starting registration process...')
     const hashedPassword = await argon2.hash(user.password)
     
     try {
+      console.log('Attempting to create user...')
       const newUser = await prisma.user.create({
         data: {
           email: user.email,
@@ -21,6 +21,7 @@ class RegistrationResolver {
           password: hashedPassword,
         },
       })
+      console.log('User created successfully')
 
       const { id, username, email, role } = newUser
       return {
@@ -32,6 +33,12 @@ class RegistrationResolver {
         },
       }
     } catch (e: any) {
+      console.error('Registration error:', {
+        code: e.code,
+        message: e.message,
+        meta: e.meta
+      })
+      
       if (e.code === 'P2002') {
         // Prisma's unique constraint violation error code
         const field = e.meta?.target?.[0] || 'unknown'
@@ -44,7 +51,6 @@ class RegistrationResolver {
           ],
         }
       } else {
-        console.log(e)
         return {
           errors: [
             {
