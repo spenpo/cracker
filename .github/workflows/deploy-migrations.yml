@@ -1,8 +1,8 @@
 name: Deploy Prisma Migrations
 on:
   push:
-    # paths:
-    #   - prisma/migrations/**
+    paths:
+      - prisma/migrations/**
     branches:
       - main
       - staging
