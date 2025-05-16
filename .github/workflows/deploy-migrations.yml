@@ -10,6 +10,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/staging' && 'staging' || 'production' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
