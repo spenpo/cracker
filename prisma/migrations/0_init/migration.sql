@@ -1,3 +1,4 @@
+-- Cracker Baseline Migration
 -- CreateTable
 CREATE TABLE `wp_cracker_feature_flag` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
