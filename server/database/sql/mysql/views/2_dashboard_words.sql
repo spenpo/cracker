@@ -1,5 +1,3 @@
--- View: dashboard_words
-
 CREATE OR REPLACE VIEW dashboard_words AS
 SELECT 
     word.word,

@@ -1,30 +1,45 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Cracker
 
-## Getting Started
+This is a lifestyle/productivity intelligence app for tracking and analyzing creative work
 
-First, run the development server:
+## Requirements
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+- [Node.js](#nodejs)
+- [MySQL](#mysql)
+- [Redis](#redis)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Development
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Start setting up your dev environment by running the three separate services
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### [Redis](https://redis.io/)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+- The easy one. Start the service and confirm it is running. No config required
+- Note the port it's running on and add it to your .env file
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### [MySQL](https://www.mysql.com/)
 
-## Local Testing
+- Start the service and create a new database
+- Note the database credentials and fill them into the connection string in your .env file (DATABASE_URL)
+  - In production, you may want to use [Prisma Accelerate](https://www.prisma.io/docs/accelerate), which is why the example .env file includes both DATABASE_URL and DIRECT_URL with DATABASE_URL pointing to an Accelerate URI (prisma://...)
+  - For local development, point both variables to the same local connection string (mysql://...)
+- Run the migrations with `npx prisma migrate reset`
+  - This creates 7 tables and several other resources in the new database
+  - You can check it against the [baseline migration](prisma/migrations/0_init/migration.sql)
+  - See [Database](#database) below for verbose db documentation
+- If you prefer to use [Docker](https://www.docker.com/), there are some sql scripts, [Dockerfiles](https://docs.docker.com/build/concepts/dockerfile/), and [Docker Compose](https://docs.docker.com/compose/intro/compose-application-model/) projects in the [server](/server/) directory
+  - The sql scripts are prefixed with numbers to properly enforce an order or operations when building the docker image
+  - The compose projects aren't currently functional due to lack of use. The structure is correct, but some debugging is required. If you get it working, please [issue a pull request](https://github.com/spope851/cracker/pulls)
+  - There are scripts for [PostgreSQL](https://www.postgresql.org/) in there too. The app will work with Postgres, but you will have to tweak the [prisma schema](prisma/schema.prisma) if you choose to use it
+  - Be sure to [baseline your database](https://www.prisma.io/docs/getting-started/setup-prisma/add-to-existing-project/relational-databases/baseline-your-database-typescript-postgresql) after building the docker image so that you can generate Prisma Client properly
 
-backend services will run in [docker](https://docs.docker.com)
-to test the server locally, make sure you have docker installed and the daemon is running. then run
+### [Node.js](https://nodejs.org/en)
 
-```bash
-yarn start:server
-```
+We recommend [Yarn](https://classic.yarnpkg.com/en/) for package management. Install it with `npm i -g yarn`
+
+- Install dependencies with `yarn`
+- Generate [Prisma Client](https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/introduction) with `yarn postinstall`
+- Start the dev at [localhost:3000](http://localhost:3000) with `yarn dev`
+
+## Database
+...

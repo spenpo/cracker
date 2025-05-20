@@ -1,0 +1,6 @@
+FROM mysql:8.0
+COPY ./sql/mysql/trigger_functions/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/mysql/tables/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/mysql/views/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/mysql/functions/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/mysql/procedures/*.sql /docker-entrypoint-initdb.d

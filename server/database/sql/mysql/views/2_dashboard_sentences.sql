@@ -1,5 +1,3 @@
--- View: dashboard_sentences
-
 CREATE OR REPLACE VIEW dashboard_sentences AS
 SELECT 
     sentence.sentence,
