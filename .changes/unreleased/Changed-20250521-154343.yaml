@@ -1,0 +1,3 @@
+kind: Changed
+body: replaced pg module with prisma client in me resolver and nextauth endpoint
+time: 2025-05-21T15:43:43.477541+08:00

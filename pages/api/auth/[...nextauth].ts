@@ -1,8 +1,8 @@
-import { PgQueryResponse, PgQueryError } from "@/types"
-import { pool } from "@/utils/postgres"
+import prisma from "@/utils/prisma"
 import argon2 from "argon2"
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+
 export const authOptions = {
   // Configure one or more authentication providers
   providers: [
@@ -18,41 +18,34 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // You need to provide your own logic here that takes the credentials
-        // submitted and returns either a object representing a user or value
-        // that is false/null if the credentials are invalid.
-        // e.g. return { id: 1, name: 'J Smith', email: 'jsmith@example.com' }
-        // You can also use the `req` object to obtain additional parameters
-        // (i.e., the request IP address)
-        const user = await pool
-          .query(`SELECT id, password, role FROM "user" WHERE username = $1;`, [
-            credentials?.username,
-          ])
-          .then(
-            async (
-              res: PgQueryResponse<{ id: number; password: string; role: number }>
-            ) => {
-              if (res.rows.length === 0) return null
-              const { id, password, role } = res.rows[0]
-
-              const correctPassword = await argon2.verify(
-                password!,
-                credentials!.password
-              )
-              if (!correctPassword) return null
-
-              return {
-                id,
-                role,
-              }
-            }
-          )
-          .catch((e: PgQueryError) => {
-            console.log(e)
-            return null
+        try {
+          const user = await prisma.user.findUnique({
+            where: {
+              username: credentials?.username,
+            },
+            select: {
+              id: true,
+              password: true,
+              role: true,
+            },
           })
-        // Return null if user data could not be retrieved
-        return user
+
+          if (!user) return null
+
+          const correctPassword = await argon2.verify(
+            user.password,
+            credentials!.password
+          )
+          if (!correctPassword) return null
+
+          return {
+            id: user.id.toString(),
+            role: user.role,
+          }
+        } catch (error) {
+          console.error(error)
+          return null
+        }
       },
     }),
     // ...add more providers here

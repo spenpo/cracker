@@ -1,0 +1,3 @@
+kind: Changed
+body: replaced redis credentials env vars with REDIS_URL for use with upstash
+time: 2025-05-21T15:44:37.573261+08:00

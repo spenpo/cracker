@@ -1,11 +1,10 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
-import { PgQueryError, PgQueryResponse, PgMe } from "@/types"
 import { getServerSession } from "next-auth"
 import { Arg, Ctx, Query, Resolver } from "type-graphql"
-import { pool } from "@/utils/postgres"
 import redis from "@/utils/redis"
 import { MeQueryResponse } from "../schemas/me/meQueryResponse"
+import prisma from "@/utils/prisma"
 
 @Resolver(MeQueryResponse)
 export class MeReslover {
@@ -18,75 +17,62 @@ export class MeReslover {
       user: { id: user },
     } = await getServerSession(req, res, authOptions)
 
-    // 1
-    // check redis for token key
-    // 2
-    // if it returns a user, return that user
-    // 3
-    // if it returns falsy, use the id to find the user in the database
-    // 4
-    // if you find them in the database, first
-    //  1
-    //  save them to redis, then
-    //  2
-    //  return them
-    // 5
-    // if you don't find them in the database, return an error
-    const queryPostgres = (): Promise<MeQueryResponse> =>
-      pool
-        .query(`CALL get_user_info($1);`, [user])
-        .then(async (res: PgQueryResponse<PgMe>) => {
-          if (res.rows.length === 0)
-            return {
-              error: "not found",
-            }
-          const {
-            _id,
-            _email,
-            _role,
-            _username,
-            _last_post_id,
-            _last_post_overview,
-            _last_post_hours,
-            _last_post_rating,
-            _last_post_date,
-          } = res.rows[0]
-          const foundUser = {
-            me: {
-              user: {
-                id: _id,
-                username: _username,
-                email: _email,
-                role: _role,
-              },
-              lastPost:
-                _last_post_id === null
-                  ? null
-                  : {
-                      id: _last_post_id,
-                      overview: _last_post_overview,
-                      numberCreativeHours: _last_post_hours,
-                      rating: _last_post_rating,
-                      createdAt: new Date(_last_post_date!).toLocaleDateString(),
-                    },
+    const queryPrisma = async (): Promise<MeQueryResponse> => {
+      try {
+        const foundUser = await prisma.user.findUnique({
+          where: { id: Number(user) },
+          include: {
+            tracker_tracker_userTouser: {
+              orderBy: { created_at: 'desc' },
+              take: 1,
             },
-          }
-          await redis.setex(user, 60 * 15, JSON.stringify(foundUser)) // expires in 15 minutes
-          return foundUser
-        })
-        .catch((e: PgQueryError) => {
-          console.log(e)
-          return {
-            error: "unhandled error",
-          }
+            role_lookup: true,
+          },
         })
 
+        if (!foundUser) {
+          return {
+            error: "not found",
+          }
+        }
+
+        const lastPost = foundUser.tracker_tracker_userTouser[0]
+        const response = {
+          me: {
+            user: {
+              id: String(foundUser.id),
+              username: foundUser.username,
+              email: foundUser.email,
+              role: foundUser.role || 1,
+            },
+            lastPost: lastPost
+              ? {
+                  id: String(lastPost.id),
+                  overview: lastPost.overview,
+                  numberCreativeHours: Number(lastPost.number_creative_hours),
+                  rating: lastPost.rating,
+                  createdAt: lastPost.created_at?.toLocaleDateString() || '',
+                }
+              : null,
+          },
+        }
+
+        await redis.setex(user, 60 * 15, JSON.stringify(response)) // expires in 15 minutes
+        return response
+      } catch (e) {
+        console.log(e)
+        return {
+          error: "unhandled error",
+        }
+      }
+    }
+
     if (refetch) {
-      return queryPostgres()
+      return queryPrisma()
     } else {
       const redisUser = await redis.get(user)
       if (redisUser) return JSON.parse(redisUser)
-      else return queryPostgres()
+      else return queryPrisma()
     }
   }
 }
