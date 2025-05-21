@@ -1,4 +1,4 @@
--- Cracker Baseline Migration 2025-05-20
+-- Cracker Baseline Migration 2025-05-21
 -- CreateTable
 CREATE TABLE `wp_cracker_feature_flag` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
