@@ -1,0 +1,6 @@
+FROM postgres:alpine
+COPY ./sql/postgresql/trigger_functions/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/postgresql/tables/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/postgresql/views/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/postgresql/functions/*.sql /docker-entrypoint-initdb.d
+COPY ./sql/postgresql/procedures/*.sql /docker-entrypoint-initdb.d

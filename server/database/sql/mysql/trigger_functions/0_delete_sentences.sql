@@ -1,0 +1,10 @@
+DELIMITER //
+
+CREATE TRIGGER delete_sentences
+AFTER INSERT ON tracker
+FOR EACH ROW
+BEGIN
+    DELETE FROM sentence WHERE tracker = NEW.id;
+END//
+
+DELIMITER ; 

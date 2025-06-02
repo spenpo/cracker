@@ -1,0 +1,3 @@
+kind: Changed
+body: updated RegisterResolver to implement prisma-client
+time: 2025-05-16T08:53:16.049005+08:00

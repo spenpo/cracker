@@ -1,0 +1,10 @@
+DELIMITER //
+
+CREATE TRIGGER set_timestamp
+BEFORE UPDATE ON tracker
+FOR EACH ROW
+BEGIN
+    SET NEW.updated_at = NOW();
+END//
+
+DELIMITER ; 

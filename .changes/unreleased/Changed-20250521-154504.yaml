@@ -1,0 +1,3 @@
+kind: Changed
+body: prisma client uses accelerate in production, regular client locally
+time: 2025-05-21T15:45:04.411253+08:00

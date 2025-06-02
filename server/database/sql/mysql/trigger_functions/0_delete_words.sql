@@ -1,0 +1,10 @@
+DELIMITER //
+
+CREATE TRIGGER delete_words
+AFTER INSERT ON tracker
+FOR EACH ROW
+BEGIN
+    DELETE FROM word WHERE tracker = NEW.id;
+END//
+
+DELIMITER ; 
