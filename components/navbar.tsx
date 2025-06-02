@@ -58,6 +58,7 @@ export default function Navbar() {
           <NavbarItem title="track" />
           <NavbarItem title="about" />
           <NavbarItem title="team" />
+          <NavbarItem title="docs" href="https://docs.cracker.my.id" />
         </Stack>
         {session.status === "authenticated" && (
           <Box p={1}>
