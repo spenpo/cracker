@@ -1,6 +1,5 @@
 import Redis from "ioredis"
-import * as keys from "../keys"
 
-const redis = new Redis(`${keys.serverHost}:${keys.redisPort}`)
+const redis = new Redis(`${process.env.REDIS_URL}`)
 
 export default redis
