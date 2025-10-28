@@ -1,6 +1,3 @@
-import { PgQueryError, PgQueryResponse, PgTrackerRow } from "@/types"
-import { pool } from "@/utils/postgres"
-import { postgresErrorDetails } from "@/utils/stringUtils"
 import { Arg, Ctx, Mutation, Resolver } from "type-graphql"
 import { UpdateTrackerInput } from "../schemas/track/updateTrackerInput"
 import { TrackerResponse } from "../schemas/track/trackerResponse"
@@ -8,6 +5,7 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
 import { deleteNlpCache } from "@/utils/redis"
 import { getServerSession } from "next-auth"
+import prisma from "@/utils/prisma"
 
 @Resolver(TrackerResponse)
 class UpdateTrackerResolver {
@@ -21,49 +19,50 @@ class UpdateTrackerResolver {
       user: { id: user },
     } = await getServerSession(req, res, authOptions)
     await deleteNlpCache(user)
-    const query: Promise<TrackerResponse> = await pool
-      .query(
-        `UPDATE tracker SET 
-        overview=$1,
-        number_creative_hours=$2,
-        rating=$3
-        WHERE id=$4
-        RETURNING *;`,
-        [overview, numberCreativeHours, rating, id]
-      )
-      .then((queryRes: PgQueryResponse<PgTrackerRow>) => {
-        const returnRow = queryRes.rows[0]
 
+    try {
+      const updatedTracker = await prisma.tracker.update({
+        where: {
+          id: Number(id),
+        },
+        data: {
+          overview,
+          number_creative_hours: numberCreativeHours,
+          rating,
+        },
+      })
+
+      return {
+        track: {
+          id: updatedTracker.id.toString(),
+          overview: updatedTracker.overview,
+          numberCreativeHours: Number(updatedTracker.number_creative_hours),
+          rating: updatedTracker.rating,
+          user: updatedTracker.user.toString(),
+        },
+      }
+    } catch (e: any) {
+      console.log(e)
+      if (e.code === "P2003") {
+        // Foreign key constraint failed
         return {
-          track: {
-            id: returnRow.id.toString(),
-            overview: returnRow.overview,
-            numberCreativeHours: Number(returnRow.number_creative_hours),
-            rating: returnRow.rating,
-            user: returnRow.user,
+          errors: [
+            {
+              field: "user",
+              message: "User does not exist",
+            },
+          ],
+        }
+      }
+      return {
+        errors: [
+          {
+            field: "unknown",
+            message: "unhandled error",
           },
-        }
-      })
-      .catch((e: PgQueryError) => {
-        const details = postgresErrorDetails(e.detail)
-        if (e.code === "23503") {
-          // code:
-          // detail: 'Key (user)=(1) is not present in table "user".'
-          return {
-            errors: [
-              {
-                field: details[1],
-                message: `id ${details[3] + details[4]}`,
-              },
-            ],
-          }
-        }
-        console.log(e)
-        return {
-          errors: [{ field: "unknown", massage: "unhandled error" }],
-        }
-      })
-    return query
+        ],
+      }
+    }
   }
 }
 

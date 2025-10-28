@@ -1,9 +1,9 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
-import { pool } from "@/utils/postgres"
 import { deleteNlpCache } from "@/utils/redis"
 import { getServerSession } from "next-auth"
 import { Ctx, Mutation, Resolver } from "type-graphql"
+import prisma from "@/utils/prisma"
 
 @Resolver(String)
 class UpgradeResolver {
@@ -13,18 +13,21 @@ class UpgradeResolver {
       user: { id: user },
     } = await getServerSession(req, res, authOptions)
     await deleteNlpCache(user)
-    const query: Promise<string> = await pool
-      .query(
-        `UPDATE "user"
-         SET role = 2
-         WHERE id = $1;`,
-        [user]
-      )
-      .then(
-        () => "Your account has been upgraded to premium!",
-        () => "Something is wrong. Please contact us."
-      )
-    return query
+
+    try {
+      await prisma.user.update({
+        where: {
+          id: Number(user),
+        },
+        data: {
+          role: 2,
+        },
+      })
+      return "Your account has been upgraded to premium!"
+    } catch (e) {
+      console.log(e)
+      return "Something is wrong. Please contact us."
+    }
   }
 }
 

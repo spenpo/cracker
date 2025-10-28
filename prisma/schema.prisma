@@ -41,7 +41,6 @@ model sentence {
   @@map("wp_cracker_sentence")
 }
 
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model tracker {
   id                                 Int        @id @default(autoincrement())
   overview                           String     @db.VarChar(512)

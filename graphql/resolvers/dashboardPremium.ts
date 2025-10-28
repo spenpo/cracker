@@ -1,7 +1,5 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
-import { PgQueryError, PgQueryResponse, PgTrackerRow } from "@/types"
-import { pool } from "@/utils/postgres"
 import { getServerSession } from "next-auth"
 import { Arg, Ctx, Query, Resolver } from "type-graphql"
 import { PremiumDashboardResponse } from "../schemas/dashboard"
@@ -9,6 +7,7 @@ import { Track } from "../schemas/track"
 import language from "@google-cloud/language"
 import redis from "@/utils/redis"
 import { CACHE_KEYS } from "@/constants"
+import prisma from "@/utils/prisma"
 
 @Resolver(PremiumDashboardResponse)
 export class PremiumDashboardReslover {
@@ -21,45 +20,35 @@ export class PremiumDashboardReslover {
       user: { id: user },
     } = await getServerSession(req, res, authOptions)
 
-    const rawData: Promise<Track[]> = await pool
-      .query(
-        `
-        SELECT * FROM tracker
-        WHERE "user"=$1
-        AND created_at > now() - ($2 || ' day')::interval;
-        `,
-        [user, runningAvg]
-      )
-      .then((res: PgQueryResponse<PgTrackerRow>) => {
-        return res.rows.map(
-          ({
-            number_creative_hours,
-            rating,
-            overview,
-            created_at,
-            id,
-          }: PgTrackerRow) => {
-            return {
-              numberCreativeHours: Number(number_creative_hours),
-              rating: Number(rating),
-              overview: overview.toLowerCase(),
-              createdAt: created_at.toString(),
-              id,
-            }
-          }
-        )
-      })
-      .catch((e: PgQueryError) => {
-        console.log(e)
-        return {
-          errors: [
-            {
-              field: "unknown",
-              message: "unhandled error",
+    const fetchRawData = async (): Promise<Track[]> => {
+      try {
+        // Calculate the date X days ago
+        const daysAgo = new Date()
+        daysAgo.setDate(daysAgo.getDate() - parseInt(runningAvg))
+
+        const trackers = await prisma.tracker.findMany({
+          where: {
+            user: Number(user),
+            created_at: {
+              gt: daysAgo,
             },
-          ],
-        }
-      })
+          },
+        })
+
+        return trackers.map((tracker) => ({
+          numberCreativeHours: Number(tracker.number_creative_hours),
+          rating: Number(tracker.rating),
+          overview: tracker.overview.toLowerCase(),
+          createdAt: tracker.created_at?.toISOString() || "",
+          id: tracker.id.toString(),
+        }))
+      } catch (e) {
+        console.log(e)
+        return []
+      }
+    }
+
+    const rawData = await fetchRawData()
 
     const fetchNlpData = async () => {
       let credentials = null
@@ -71,7 +60,7 @@ export class PremiumDashboardReslover {
 
       const client = new language.LanguageServiceClient({ credentials })
 
-      const overviews = (await rawData).map((track) => track.overview).join(" ")
+      const overviews = rawData.map((track) => track.overview).join(" ")
 
       const document = {
         content: overviews,
@@ -105,26 +94,26 @@ export class PremiumDashboardReslover {
       `${CACHE_KEYS.premiumDashboard}/${user}/${runningAvg}`
     )
 
-    if (cachedNlpData)
+    if (cachedNlpData) {
+      const nlpData = JSON.parse(cachedNlpData)
       return {
         dashboard: {
-          rawData: await rawData,
-          sentences: JSON.parse(cachedNlpData).sentences,
-          entities: JSON.parse(cachedNlpData).entities,
-          tokens: JSON.parse(cachedNlpData).tokens,
+          rawData,
+          sentences: nlpData.sentences,
+          entities: nlpData.entities,
+          tokens: nlpData.tokens,
         },
       }
-    else {
-      return await fetchNlpData().then(async ({ sentences, entities, tokens }) => {
-        return {
-          dashboard: {
-            rawData: await rawData,
-            sentences,
-            entities,
-            tokens,
-          },
-        }
-      })
+    } else {
+      const { sentences, entities, tokens } = await fetchNlpData()
+      return {
+        dashboard: {
+          rawData,
+          sentences,
+          entities,
+          tokens,
+        },
+      }
     }
   }
 }

@@ -1,12 +1,12 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
-import { PgDashboardMetrics, PgQueryError, PgQueryResponse } from "@/types"
-import { pool } from "@/utils/postgres"
 import { getServerSession } from "next-auth"
 import { Arg, Ctx, Query, Resolver } from "type-graphql"
 import { DashboardMetrics, DashboardMetricsResponse } from "../schemas/dashboard"
 import redis from "@/utils/redis"
 import { CACHE_KEYS } from "@/constants"
+import prisma from "@/utils/prisma"
+import { PgDashboardMetrics } from "@/types"
 
 @Resolver(DashboardMetricsResponse)
 export class DashboardMetricsReslover {
@@ -27,9 +27,13 @@ export class DashboardMetricsReslover {
         dashboardMetrics: JSON.parse(cachedMetrics),
       }
 
-    return await pool
-      .query(`CALL get_dashboard_metrics($1, $2);`, [user, runningAvg])
-      .then(async (res: PgQueryResponse<PgDashboardMetrics>) => {
+    try {
+      // Call MySQL stored procedure
+      const result = await prisma.$queryRaw`
+        CALL get_dashboard_metrics(${Number(user)}, ${runningAvg})
+      ` as PgDashboardMetrics[]
+
+      if (result.length > 0) {
         const {
           _days_of_use,
           _avg_hours,
@@ -38,7 +42,7 @@ export class DashboardMetricsReslover {
           _count_zero,
           _count_plus_one,
           _count_plus_two,
-        } = res.rows[0]
+        } = result[0]
 
         const dashboardMetrics: DashboardMetrics = {
           daysOfUse: Number(_days_of_use),
@@ -56,18 +60,22 @@ export class DashboardMetricsReslover {
           `${CACHE_KEYS.dashboardMetrics}/${user}/${runningAvg}`,
           JSON.stringify(dashboardMetrics)
         )
+
         return { dashboardMetrics }
-      })
-      .catch((e: PgQueryError) => {
-        console.log(e)
-        return {
-          errors: [
-            {
-              field: "unknown",
-              message: "unhandled error",
-            },
-          ],
-        }
-      })
+      }
+
+      // Fallback if stored procedure fails
+      throw new Error("Stored procedure returned no results")
+    } catch (e) {
+      console.log(e)
+      return {
+        errors: [
+          {
+            field: "unknown",
+            message: "unhandled error",
+          },
+        ],
+      }
+    }
   }
 }

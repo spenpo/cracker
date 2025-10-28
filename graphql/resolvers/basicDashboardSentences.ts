@@ -1,7 +1,5 @@
 import { authOptions } from "@/pages/api/auth/[...nextauth]"
 import { type MyContext } from "@/pages/api/graphql"
-import { PgBasicSentence, PgQueryError, PgQueryResponse } from "@/types"
-import { pool } from "@/utils/postgres"
 import { getServerSession } from "next-auth"
 import { Arg, Ctx, Query, Resolver } from "type-graphql"
 import redis from "@/utils/redis"
@@ -11,12 +9,14 @@ import {
   BasicDashboardInput,
 } from "../schemas/dashboard"
 import { CACHE_KEYS } from "@/constants"
+import prisma from "@/utils/prisma"
+import { PgBasicSentence } from "@/types"
 
 @Resolver(GetSentences)
 export class BasicDashboardSentences {
   @Query(() => GetSentences)
   async basicDashboardSentences(
-    @Arg("args", () => BasicDashboardInput) args: string,
+    @Arg("args", () => BasicDashboardInput) args: BasicDashboardInput,
     @Ctx() { req, res }: MyContext
   ): Promise<GetSentences> {
     const {
@@ -30,50 +30,55 @@ export class BasicDashboardSentences {
 
     if (cachedMetrics) return JSON.parse(cachedMetrics)
 
-    return await pool
-      .query(`SELECT * FROM get_dashboard_sentences($1, $2, $3, $4, $5, $6, $7);`, [
-        user,
-        ...Object.values(args),
-      ])
-      .then(async (r: PgQueryResponse<PgBasicSentence>) => {
-        const sentences: BasicSentence[] = r.rows.map(
-          (
-            { sentence, rating, number_creative_hours, created_at, overview },
-            idx
-          ) => {
-            return {
-              text: {
-                content: sentence,
-              },
-              id: idx.toString(),
-              rating,
-              numberCreativeHours: Number(number_creative_hours),
-              createdAt: created_at.toString(),
-              overview,
-            }
-          }
+    try {
+      // Format rating filter as JSON for MySQL stored procedure
+      const ratingFilter = args.rating && args.rating.length > 0
+        ? JSON.stringify(args.rating)
+        : null
+
+      // Call MySQL stored procedure
+      const result = await prisma.$queryRaw`
+        CALL get_dashboard_sentences(
+          ${Number(user)},
+          ${args.runningAvg},
+          ${ratingFilter},
+          ${args.minHours},
+          ${args.maxHours},
+          ${args.sortColumn || 'createdAt'},
+          ${args.sortDir || 'desc'}
         )
+      ` as PgBasicSentence[]
 
-        const dashboard = { sentences }
+      const sentences: BasicSentence[] = result.map((row, idx) => ({
+        text: {
+          content: row.sentence,
+        },
+        id: idx.toString(),
+        rating: row.rating,
+        numberCreativeHours: Number(row.number_creative_hours),
+        createdAt: row.created_at,
+        overview: row.overview,
+      }))
 
-        await redis.hset(
-          `${CACHE_KEYS.basicDashboardSentences}/${user}`,
-          `${JSON.stringify(args)}`,
-          JSON.stringify(dashboard)
-        )
+      const dashboard = { sentences }
 
-        return dashboard
-      })
-      .catch((e: PgQueryError) => {
-        console.log(e)
-        return {
-          errors: [
-            {
-              field: "unknown",
-              message: "unhandled error",
-            },
-          ],
-        }
-      })
+      await redis.hset(
+        `${CACHE_KEYS.basicDashboardSentences}/${user}`,
+        `${JSON.stringify(args)}`,
+        JSON.stringify(dashboard)
+      )
+
+      return dashboard
+    } catch (e) {
+      console.log(e)
+      return {
+        errors: [
+          {
+            field: "unknown",
+            message: "unhandled error",
+          },
+        ],
+      }
+    }
   }
 }

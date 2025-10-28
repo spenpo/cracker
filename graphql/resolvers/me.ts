@@ -19,39 +19,43 @@ export class MeReslover {
 
     const queryPrisma = async (): Promise<MeQueryResponse> => {
       try {
-        const foundUser = await prisma.user.findUnique({
-          where: { id: Number(user) },
-          include: {
-            tracker_tracker_userTouser: {
-              orderBy: { created_at: 'desc' },
-              take: 1,
-            },
-            role_lookup: true,
-          },
-        })
+        // Call MySQL stored procedure
+        const result = await prisma.$queryRaw`
+          CALL get_user_info(${Number(user)})
+        ` as Array<{
+          id: number
+          username: string
+          email: string
+          role: number | null
+          last_post_id: number | null
+          last_post_overview: string | null
+          last_post_hours: number | null
+          last_post_rating: number | null
+          last_post_date: Date | null
+        }>
 
-        if (!foundUser) {
+        if (result.length === 0) {
           return {
             error: "not found",
           }
         }
 
-        const lastPost = foundUser.tracker_tracker_userTouser[0]
+        const userData = result[0]
         const response = {
           me: {
             user: {
-              id: String(foundUser.id),
-              username: foundUser.username,
-              email: foundUser.email,
-              role: foundUser.role || 1,
+              id: String(userData.id),
+              username: userData.username,
+              email: userData.email,
+              role: userData.role || 1,
             },
-            lastPost: lastPost
+            lastPost: userData.last_post_id
               ? {
-                  id: String(lastPost.id),
-                  overview: lastPost.overview,
-                  numberCreativeHours: Number(lastPost.number_creative_hours),
-                  rating: lastPost.rating,
-                  createdAt: lastPost.created_at?.toLocaleDateString() || '',
+                  id: String(userData.last_post_id),
+                  overview: userData.last_post_overview || '',
+                  numberCreativeHours: Number(userData.last_post_hours || 0),
+                  rating: userData.last_post_rating || 0,
+                  createdAt: userData.last_post_date?.toLocaleDateString() || '',
                 }
               : null,
           },
