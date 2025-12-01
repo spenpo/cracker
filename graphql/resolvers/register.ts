@@ -11,7 +11,14 @@ class RegistrationResolver {
   async register(
     @Arg("user", () => UserInput) user: UserInput
   ): Promise<RegisterResponse> {
-    const hashedPassword = await argon2.hash(user.password)
+    const hashedPassword = await argon2.hash(user.password, {
+      type: argon2.argon2id, // Explicitly set to argon2id
+      memoryCost: 65536, // 64MB
+      timeCost: 3,
+      parallelism: 4,
+      hashLength: 32, // 32 bytes (256 bits)
+      saltLength: 16, // 16 bytes (standard argon2 salt length)
+    })
     const res: Promise<RegisterResponse> = await pool
       .query(
         `INSERT INTO "user" (email, username, password)

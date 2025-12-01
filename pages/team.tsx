@@ -12,11 +12,11 @@ const TEAMMATES: TeammateProps[] = [
     links: [
       {
         id: "github",
-        href: "https://github.com/spope851",
+        href: "https://github.com/spenpo",
       },
       {
         id: "twitter",
-        href: "https://twitter.com/s_pop3",
+        href: "https://twitter.com/sp3npo",
       },
       {
         id: "web",
@@ -36,19 +36,7 @@ const TEAMMATES: TeammateProps[] = [
       {
         id: "github",
         href: "https://github.com/ChrisShep98",
-      },
-      {
-        id: "twitter",
-        href: "",
-      },
-      {
-        id: "web",
-        href: "",
-      },
-      {
-        id: "mail",
-        href: "",
-      },
+      }
     ],
   },
 ]

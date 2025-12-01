@@ -46,7 +46,11 @@ export default function Home({
         justifyContent="center"
         alignItems="center"
         flexDirection="column"
+        maxWidth="1200px"
+        px={{ xs: 2, md: 4 }}
+        py={{ xs: 4, md: 8 }}
         m="auto"
+        sx={{ width: "100%", boxSizing: "border-box" }}
       >
         {session.status === "authenticated" ? (
           <DashboardFilterContextProvider

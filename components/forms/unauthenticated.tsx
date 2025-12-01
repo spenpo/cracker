@@ -8,11 +8,21 @@ export const Unauthenticated: React.FC = () => {
   const router = useRouter()
 
   return (
-    <Stack direction={"row"}>
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      spacing={{ xs: 4, md: 8 }}
+      alignItems={{ xs: "center", md: "flex-start" }}
+      justifyContent="center"
+    >
       <IntroDescription />
-      <Box className={"animate__animated animate__backInRight"} mt={5}>
+      <Box
+        className={"animate__animated animate__backInRight"}
+        mt={{ xs: 2, md: 5 }}
+        width={{ xs: "100%", sm: "80%", md: "auto" }}
+        maxWidth={420}
+      >
         <SignIn />
-        <Typography>
+        <Typography textAlign={{ xs: "center", md: "left" }} mt={2}>
           not a member?{" "}
           <Button onClick={() => router.push("/register")}>sign up</Button>
         </Typography>

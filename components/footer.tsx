@@ -5,28 +5,45 @@ import github from "../public/images/github.svg"
 
 export default function Footer() {
   return (
-    <Box
-      component="footer"
-      display="flex"
-      justifyContent="space-around"
-      mt="auto"
-      sx={{ backgroundColor: "#8a8c8e" }}
-    >
-      <Box component="ul" sx={{ listStyleType: "none" }}>
-        <Box component="li">
-          <Link
-            href="https://github.com/The-Reflective-Hour/creativity-tracker"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Image src={github} width={30} height={30} alt="github" />
-          </Link>
+    <Box component="footer" width="100%" sx={{ backgroundColor: "#8a8c8e" }} mt="auto">
+      <Box
+        display="flex"
+        flexDirection={{ xs: "column", sm: "row" }}
+        alignItems="center"
+        justifyContent={{ xs: "center", sm: "space-between" }}
+        gap={2}
+        width="100%"
+        maxWidth="1200px"
+        mx="auto"
+        px={{ xs: 2, md: 4 }}
+        py={3}
+        sx={{ boxSizing: "border-box" }}
+      >
+        <Box
+          component="ul"
+          sx={{
+            listStyleType: "none",
+            m: 0,
+            p: 0,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <Box component="li">
+            <Link
+              href="https://github.com/spenpo/cracker"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Image src={github} width={30} height={30} alt="github" />
+            </Link>
+          </Box>
         </Box>
-      </Box>
-      <Box style={{ margin: "auto 0" }}>
-        <Typography component="span" color="#fff">
-          © 2023 The Reflective Hour
-        </Typography>
+        <Box textAlign={{ xs: "center", sm: "right" }}>
+          <Typography component="span" color="#fff" fontSize={{ xs: "0.9rem", md: "1rem" }}>
+            © 2025 The Reflective Hour
+          </Typography>
+        </Box>
       </Box>
     </Box>
   )
